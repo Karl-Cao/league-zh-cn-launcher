@@ -1,5 +1,7 @@
 # League of Legends zh_CN Launcher
 
+**English** | [简体中文](README.zh-CN.md)
+
 A small Windows launcher that starts the global League of Legends client in
 Simplified Chinese (`zh_CN`) and restores the locale when Riot rewrites its
 configuration during startup.
@@ -28,7 +30,8 @@ configuration during startup.
 
 ## Installation
 
-1. Download the repository with **Code > Download ZIP**.
+1. Download `League-zh_CN-Portable-v1.0.0.zip` from the latest
+   [GitHub Release](../../releases/latest).
 2. Extract the ZIP. Do not run the installer from inside the ZIP preview.
 3. Double-click **`Install League zh_CN.cmd`**.
 4. Launch League from **League of Legends - Simplified Chinese** on the desktop.
