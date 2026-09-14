@@ -15,6 +15,8 @@
 - 将 `zh_CN` 添加到语言列表，并设置为当前及默认语言。
 - 修改英雄联盟自身的 `LeagueClientSettings.yaml` 语言设置。
 - 在启动期间监控两个配置文件；如果 Riot 重写设置，会立即恢复简体中文。
+- 在 Riot 更新游戏的整个过程中持续保持 `zh_CN`，避免先按 `en_US` 更新、随后又
+  重复下载约 3 GB 的中文语言资源。
 - 创建桌面快捷方式，并使用本机英雄联盟客户端的图标。
 - 不会把 Riot 配置文件设为只读，因此不会故意阻止正常更新或修复。
 
@@ -27,7 +29,7 @@
 ## 安装方法
 
 1. 从最新的 [GitHub Release](../../releases/latest) 下载
-   `League-zh_CN-Portable-v1.0.0.zip`。
+   `League-zh_CN-Portable-v1.1.0.zip`。
 2. 完整解压 ZIP；不要直接在压缩包预览窗口中运行安装程序。
 3. 双击 **`Install League zh_CN.cmd`**。
 4. 以后使用桌面上的 **League of Legends - Simplified Chinese** 启动游戏。

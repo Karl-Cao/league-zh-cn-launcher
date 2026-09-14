@@ -18,6 +18,9 @@ configuration during startup.
 - Updates League's own `LeagueClientSettings.yaml` locale.
 - Watches both files during startup and reapplies the locale after Riot rewrites
   them.
+- Keeps `zh_CN` active throughout Riot patching, so a normal game update does
+  not first switch back to `en_US` and trigger a second Chinese-language asset
+  download.
 - Creates a desktop shortcut using the installed League client icon.
 - Leaves Riot configuration files writable so normal patching and repair are
   not intentionally blocked.
@@ -30,7 +33,7 @@ configuration during startup.
 
 ## Installation
 
-1. Download `League-zh_CN-Portable-v1.0.0.zip` from the latest
+1. Download `League-zh_CN-Portable-v1.1.0.zip` from the latest
    [GitHub Release](../../releases/latest).
 2. Extract the ZIP. Do not run the installer from inside the ZIP preview.
 3. Double-click **`Install League zh_CN.cmd`**.

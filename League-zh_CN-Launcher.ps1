@@ -1,11 +1,16 @@
 [CmdletBinding()]
 param(
-    [switch]$NoLaunch
+    [switch]$NoLaunch,
+    [ValidateRange(1, 720)]
+    [int]$MaxWatchMinutes = 180,
+    [ValidateRange(15, 600)]
+    [int]$StableSeconds = 120
 )
 
 $ErrorActionPreference = 'Stop'
 $targetLocale = 'zh_CN'
 $metadataPath = 'C:\ProgramData\Riot Games\Metadata\league_of_legends.live\league_of_legends.live.product_settings.yaml'
+$updateStatusPath = 'C:\ProgramData\Riot Games\Metadata\league_of_legends.live\league_of_legends.live.update-status.json'
 $appDataRoot = Join-Path $env:LOCALAPPDATA 'League-zh_CN-Launcher'
 $logPath = Join-Path $appDataRoot 'launcher.log'
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
@@ -140,19 +145,37 @@ function Apply-LeagueLocale {
         [pscustomobject]$Paths,
         [switch]$RequireFiles
     )
-    Set-LocaleFile -Path $metadataPath -SetDefaultLocale -EnsureAvailableLocale -Required:$RequireFiles | Out-Null
-    Set-LocaleFile -Path $Paths.LeagueSettings -Required:$RequireFiles | Out-Null
+    $metadataChanged = Set-LocaleFile -Path $metadataPath -SetDefaultLocale -EnsureAvailableLocale -Required:$RequireFiles
+    $settingsChanged = Set-LocaleFile -Path $Paths.LeagueSettings -Required:$RequireFiles
+    return ($metadataChanged -or $settingsChanged)
+}
+
+function Test-LeagueUpdatePending {
+    if (-not (Test-Path -LiteralPath $updateStatusPath -PathType Leaf)) {
+        return $false
+    }
+
+    try {
+        $updateState = [System.IO.File]::ReadAllText($updateStatusPath) | ConvertFrom-Json
+        return [bool]($updateState.status.updateAvailable -or $updateState.status.updateRequired)
+    }
+    catch {
+        # Riot can briefly replace this file. Locale enforcement continues either way.
+        return $false
+    }
 }
 
 try {
     Write-LauncherLog 'Launcher started.'
     $paths = Find-RiotInstallation
-    Apply-LeagueLocale -Paths $paths -RequireFiles
+    Apply-LeagueLocale -Paths $paths -RequireFiles | Out-Null
 
     if ($NoLaunch) {
         Write-LauncherLog 'Validation completed without launching League.'
         exit 0
     }
+
+    $existingRendererIds = @(Get-Process -Name 'LeagueClientUxRender' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Id)
 
     Start-Process -FilePath $paths.RiotClient -ArgumentList @(
         '--launch-product=league_of_legends',
@@ -160,25 +183,52 @@ try {
     )
     Write-LauncherLog 'Riot Client launch requested.'
 
-    $deadline = (Get-Date).AddMinutes(10)
+    $deadline = (Get-Date).AddMinutes($MaxWatchMinutes)
     $leagueDetectedAt = $null
+    $lastCorrectionAt = Get-Date
+    $updateWasPending = $false
 
     while ((Get-Date) -lt $deadline) {
-        Apply-LeagueLocale -Paths $paths
+        $localeCorrected = Apply-LeagueLocale -Paths $paths
+        if ($localeCorrected) {
+            $lastCorrectionAt = Get-Date
+        }
 
-        if (Get-Process -Name 'LeagueClientUxRender' -ErrorAction SilentlyContinue) {
+        $updatePending = Test-LeagueUpdatePending
+        if ($updatePending) {
+            $lastCorrectionAt = Get-Date
+            if (-not $updateWasPending) {
+                Write-LauncherLog 'League update detected; protecting zh_CN throughout the update.'
+            }
+            $updateWasPending = $true
+        }
+
+        $rendererProcesses = @(Get-Process -Name 'LeagueClientUxRender' -ErrorAction SilentlyContinue)
+        $newRendererDetected = @($rendererProcesses | Where-Object { $_.Id -notin $existingRendererIds }).Count -gt 0
+        $existingClientStillOpen = $existingRendererIds.Count -gt 0 -and $rendererProcesses.Count -gt 0
+
+        if ($newRendererDetected -or $existingClientStillOpen) {
             if ($null -eq $leagueDetectedAt) {
                 $leagueDetectedAt = Get-Date
-                Write-LauncherLog 'League client detected; continuing protection for 15 seconds.'
+                Write-LauncherLog "League client detected; waiting for $StableSeconds stable seconds after patching and locale corrections finish."
             }
-            if ((Get-Date) -ge $leagueDetectedAt.AddSeconds(15)) { break }
+
+            $stableSince = if ($lastCorrectionAt -gt $leagueDetectedAt) { $lastCorrectionAt } else { $leagueDetectedAt }
+            if (-not $updatePending -and (Get-Date) -ge $stableSince.AddSeconds($StableSeconds)) {
+                break
+            }
         }
 
         Start-Sleep -Milliseconds 300
     }
 
-    Apply-LeagueLocale -Paths $paths
-    Write-LauncherLog 'Launcher finished.'
+    Apply-LeagueLocale -Paths $paths | Out-Null
+    if ((Get-Date) -ge $deadline) {
+        Write-LauncherLog "Maximum watch time of $MaxWatchMinutes minutes reached; locale was applied one final time."
+    }
+    else {
+        Write-LauncherLog 'Update/startup cycle is stable; launcher finished.'
+    }
 }
 catch {
     Write-LauncherLog "ERROR: $($_.Exception.Message)"
