@@ -11,6 +11,7 @@ $ErrorActionPreference = 'Stop'
 $targetLocale = 'zh_CN'
 $metadataPath = 'C:\ProgramData\Riot Games\Metadata\league_of_legends.live\league_of_legends.live.product_settings.yaml'
 $updateStatusPath = 'C:\ProgramData\Riot Games\Metadata\league_of_legends.live\league_of_legends.live.update-status.json'
+$riotSettingsPath = Join-Path $env:LOCALAPPDATA 'Riot Games\Riot Client\Config\RiotClientSettings.yaml'
 $appDataRoot = Join-Path $env:LOCALAPPDATA 'League-zh_CN-Launcher'
 $logPath = Join-Path $appDataRoot 'launcher.log'
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
@@ -147,7 +148,27 @@ function Apply-LeagueLocale {
     )
     $metadataChanged = Set-LocaleFile -Path $metadataPath -SetDefaultLocale -EnsureAvailableLocale -Required:$RequireFiles
     $settingsChanged = Set-LocaleFile -Path $Paths.LeagueSettings -Required:$RequireFiles
-    return ($metadataChanged -or $settingsChanged)
+    $riotSettingsChanged = Set-LocaleFile -Path $riotSettingsPath -Required:$RequireFiles
+    return ($metadataChanged -or $settingsChanged -or $riotSettingsChanged)
+}
+
+function Assert-RiotUpdaterLocale {
+    if (-not (Test-Path -LiteralPath $riotSettingsPath -PathType Leaf)) {
+        throw "Riot Client settings were not found at $riotSettingsPath"
+    }
+
+    $text = [System.IO.File]::ReadAllText($riotSettingsPath)
+    $matches = [regex]::Matches($text, '(?m)^\s*locale:\s*["'']?([^"''\s]+)["'']?\s*$')
+    if ($matches.Count -eq 0) {
+        throw 'Riot Client settings do not contain an updater locale.'
+    }
+
+    $wrongLocales = @($matches | Where-Object { $_.Groups[1].Value -ne $targetLocale })
+    if ($wrongLocales.Count -gt 0) {
+        throw "Riot Client updater locale could not be verified as $targetLocale. Riot was not launched to prevent an unintended language download."
+    }
+
+    Write-LauncherLog "Verified Riot Client updater locale: $targetLocale"
 }
 
 function Test-LeagueUpdatePending {
@@ -169,6 +190,7 @@ try {
     Write-LauncherLog 'Launcher started.'
     $paths = Find-RiotInstallation
     Apply-LeagueLocale -Paths $paths -RequireFiles | Out-Null
+    Assert-RiotUpdaterLocale
 
     if ($NoLaunch) {
         Write-LauncherLog 'Validation completed without launching League.'
@@ -179,7 +201,8 @@ try {
 
     Start-Process -FilePath $paths.RiotClient -ArgumentList @(
         '--launch-product=league_of_legends',
-        '--launch-patchline=live'
+        '--launch-patchline=live',
+        "--locale=$targetLocale"
     )
     Write-LauncherLog 'Riot Client launch requested.'
 

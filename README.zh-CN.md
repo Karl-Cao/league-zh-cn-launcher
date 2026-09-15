@@ -14,7 +14,11 @@
 - 从 Riot 元数据中自动检测英雄联盟和 Riot Client 的安装路径。
 - 将 `zh_CN` 添加到语言列表，并设置为当前及默认语言。
 - 修改英雄联盟自身的 `LeagueClientSettings.yaml` 语言设置。
-- 在启动期间监控两个配置文件；如果 Riot 重写设置，会立即恢复简体中文。
+- 将 Riot Client 的持久更新语言设置为 `zh_CN`，并使用明确的
+  `--locale=zh_CN` 参数启动 Riot Client。
+- 如果无法先确认 Riot 更新器语言为 `zh_CN`，启动器会停止运行，防止意外按英文
+  语言方案下载更新。
+- 在启动期间监控三个配置文件；如果 Riot 重写设置，会立即恢复简体中文。
 - 在 Riot 更新游戏的整个过程中持续保持 `zh_CN`，避免先按 `en_US` 更新、随后又
   重复下载约 3 GB 的中文语言资源。
 - 创建桌面快捷方式，并使用本机英雄联盟客户端的图标。
@@ -29,7 +33,7 @@
 ## 安装方法
 
 1. 从最新的 [GitHub Release](../../releases/latest) 下载
-   `League-zh_CN-Portable-v1.1.0.zip`。
+   `League-zh_CN-Portable-v1.1.1.zip`。
 2. 完整解压 ZIP；不要直接在压缩包预览窗口中运行安装程序。
 3. 双击 **`Install League zh_CN.cmd`**。
 4. 以后使用桌面上的 **League of Legends - Simplified Chinese** 启动游戏。
@@ -63,10 +67,11 @@
 ```text
 C:\ProgramData\Riot Games\Metadata\league_of_legends.live\league_of_legends.live.product_settings.yaml
 <英雄联盟安装目录>\Config\LeagueClientSettings.yaml
+%LOCALAPPDATA%\Riot Games\Riot Client\Config\RiotClientSettings.yaml
 ```
 
-随后，它使用正式服的正常启动参数运行 `RiotClientServices.exe`，并在客户端
-交接完成前持续监控语言设置。
+随后，它使用正式服的正常启动参数及 `--locale=zh_CN` 运行
+`RiotClientServices.exe`，并在客户端交接完成前持续监控语言设置。
 
 ## 许可证
 

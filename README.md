@@ -16,7 +16,11 @@ configuration during startup.
 - Detects the League and Riot Client installation paths from Riot metadata.
 - Adds `zh_CN` to the locale list and sets it as the active/default locale.
 - Updates League's own `LeagueClientSettings.yaml` locale.
-- Watches both files during startup and reapplies the locale after Riot rewrites
+- Sets Riot Client's persistent updater locale to `zh_CN` and launches Riot with
+  an explicit `--locale=zh_CN` argument.
+- Refuses to launch Riot if its updater locale cannot first be verified as
+  `zh_CN`, preventing an accidental English-language patch plan.
+- Watches all three files during startup and reapplies the locale after Riot rewrites
   them.
 - Keeps `zh_CN` active throughout Riot patching, so a normal game update does
   not first switch back to `en_US` and trigger a second Chinese-language asset
@@ -33,7 +37,7 @@ configuration during startup.
 
 ## Installation
 
-1. Download `League-zh_CN-Portable-v1.1.0.zip` from the latest
+1. Download `League-zh_CN-Portable-v1.1.1.zip` from the latest
    [GitHub Release](../../releases/latest).
 2. Extract the ZIP. Do not run the installer from inside the ZIP preview.
 3. Double-click **`Install League zh_CN.cmd`**.
@@ -70,10 +74,12 @@ The launcher updates these Riot-managed files when present:
 ```text
 C:\ProgramData\Riot Games\Metadata\league_of_legends.live\league_of_legends.live.product_settings.yaml
 <League install>\Config\LeagueClientSettings.yaml
+%LOCALAPPDATA%\Riot Games\Riot Client\Config\RiotClientSettings.yaml
 ```
 
 It then starts `RiotClientServices.exe` with the normal League live-product
-arguments and keeps watching through the League client handoff.
+arguments plus `--locale=zh_CN`, and keeps watching through the League client
+handoff.
 
 ## License
 
