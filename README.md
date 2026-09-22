@@ -2,9 +2,8 @@
 
 **English** | [简体中文](README.zh-CN.md)
 
-A small Windows launcher that starts the global League of Legends client in
-Simplified Chinese (`zh_CN`) and restores the locale when Riot rewrites its
-configuration during startup.
+A small Windows helper that opens Riot Client and continuously keeps League's
+active metadata locale set to Simplified Chinese (`zh_CN`).
 
 > [!IMPORTANT]
 > This is an unofficial community workaround. It is not affiliated with,
@@ -13,18 +12,16 @@ configuration during startup.
 
 ## What it does
 
-- Detects the League and Riot Client installation paths from Riot metadata.
-- Adds `zh_CN` to the locale list and sets it as the active/default locale.
-- Updates League's own `LeagueClientSettings.yaml` locale.
-- Sets Riot Client's persistent updater locale to `zh_CN` and launches Riot with
-  an explicit `--locale=zh_CN` argument.
-- Refuses to launch Riot if its updater locale cannot first be verified as
-  `zh_CN`, preventing an accidental English-language patch plan.
-- Watches all three files during startup and reapplies the locale after Riot rewrites
-  them.
-- Keeps `zh_CN` active throughout Riot patching, so a normal game update does
-  not first switch back to `en_US` and trigger a second Chinese-language asset
-  download.
+- Opens Riot Client normally without automatically starting League.
+- Watches `league_of_legends.live.product_settings.yaml` while Riot or League is
+  running and restores its active `locale` whenever Riot changes it to `en_US`.
+- When a fresh Riot session resets the locale to `en_US`, restores `zh_CN`,
+  restarts Riot Client once, and continues watching after it reopens. This makes
+  the reopened client select the Chinese update path instead of continuing the
+  full English language-package download.
+- Allows the user to manually click **Update** or **Play** after Riot reopens.
+- Does not modify Riot Client settings, `default_locale`, `available_locales`, or
+  `LeagueClientSettings.yaml`.
 - Creates a desktop shortcut using the installed League client icon.
 - Leaves Riot configuration files writable so normal patching and repair are
   not intentionally blocked.
@@ -37,7 +34,7 @@ configuration during startup.
 
 ## Installation
 
-1. Download `League-zh_CN-Portable-v1.1.1.zip` from the latest
+1. Download `League-zh_CN-Portable-v1.2.0.zip` from the latest
    [GitHub Release](../../releases/latest).
 2. Extract the ZIP. Do not run the installer from inside the ZIP preview.
 3. Double-click **`Install League zh_CN.cmd`**.
@@ -69,17 +66,12 @@ again.
 
 ## How it works
 
-The launcher updates these Riot-managed files when present:
-
-```text
-C:\ProgramData\Riot Games\Metadata\league_of_legends.live\league_of_legends.live.product_settings.yaml
-<League install>\Config\LeagueClientSettings.yaml
-%LOCALAPPDATA%\Riot Games\Riot Client\Config\RiotClientSettings.yaml
-```
-
-It then starts `RiotClientServices.exe` with the normal League live-product
-arguments plus `--locale=zh_CN`, and keeps watching through the League client
-handoff.
+The launcher opens Riot Client normally and monitors only the active `locale`
+field in League's product metadata. When it observes Riot's fresh `en_US` reset,
+it restores `zh_CN` and restarts Riot Client once. It then keeps restoring
+`zh_CN` throughout the reopened Riot and League session, including after League
+starts. It never restarts repeatedly, and it stops after both Riot and League
+have been closed for ten seconds.
 
 ## License
 
