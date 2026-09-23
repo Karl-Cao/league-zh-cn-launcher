@@ -15,7 +15,7 @@
 - 在 Riot 启动期间监控 `league_of_legends.live.product_settings.yaml`；
   Riot 将当前 `locale` 改回 `en_US` 时，立即恢复为 `zh_CN`。
 - 当新的 Riot 会话把语言重置为 `en_US` 时，启动器会先恢复 `zh_CN`，再自动重启
-  Riot Client 一次，并在重启后继续监控，直到英雄联盟客户端打开。这样重新打开的客户端会选择中文更新，
+  Riot Client 一次，并在重启后继续监控，直到英雄联盟或云顶之弈的对局启动。这样重新打开的客户端会选择中文更新，
   而不是继续下载完整的英文语言包。
 - Riot Client 重新打开后，用户可以手动点击 **更新** 或 **开始游戏**。
 - 不修改 Riot Client 设置、`default_locale`、`available_locales` 或
@@ -32,7 +32,7 @@
 ## 安装方法
 
 1. 从最新的 [GitHub Release](../../releases/latest) 下载
-   `League-zh_CN-Portable-v1.2.1.zip`。
+   `League-zh_CN-Portable-v1.2.2.zip`。
 2. 完整解压 ZIP；不要直接在压缩包预览窗口中运行安装程序。
 3. 双击 **`Install League zh_CN.cmd`**。
 4. 以后使用桌面上的 **League of Legends - Simplified Chinese** 启动游戏。
@@ -63,9 +63,10 @@
 
 启动器正常打开 Riot Client，并且只监控英雄联盟产品元数据中的当前 `locale`
 字段。当它发现 Riot 刚把语言重置为 `en_US` 时，会恢复 `zh_CN` 并自动重启
-Riot Client 一次。重启后，它会继续保持 `zh_CN`，直到英雄联盟客户端打开，
-随后监控程序立即退出。如果英雄联盟尚未打开、Riot Client 就已关闭，
-监控程序会在十秒后退出。启动器不会反复重启 Riot Client。
+Riot Client 一次。重启后，它会在英雄联盟大厅继续保持 `zh_CN`。检测到
+英雄联盟或云顶之弈的实际游戏进程时，监控程序立即退出，不再参与对局或结算。
+如果对局尚未开始、Riot Client 就已关闭，监控程序会在十秒后退出。
+启动器不会反复重启 Riot Client。
 
 ## 许可证
 

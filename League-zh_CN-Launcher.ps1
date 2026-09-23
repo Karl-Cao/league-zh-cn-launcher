@@ -16,7 +16,8 @@ $processNames = @(
     'LeagueClient',
     'LeagueClientUx',
     'LeagueClientUxRender',
-    'League of Legends'
+    'League of Legends',
+    'TFTClient-Win64-Shipping'
 )
 
 if (-not (Test-Path -LiteralPath $appDataRoot)) {
@@ -124,11 +125,12 @@ function Get-MetadataLastWriteUtc {
     }
 }
 
-function Test-LeagueRunning {
-    return @(
-        Get-Process -ErrorAction SilentlyContinue |
-            Where-Object { $_.ProcessName -in @('LeagueClient', 'LeagueClientUx', 'LeagueClientUxRender', 'League of Legends') }
-    ).Count -gt 0
+function Test-MatchRunning {
+    return @(Get-Process -Name 'League of Legends', 'TFTClient-Win64-Shipping' -ErrorAction SilentlyContinue).Count -gt 0
+}
+
+function Test-LeagueClientRunning {
+    return @(Get-Process -Name 'LeagueClient', 'LeagueClientUx', 'LeagueClientUxRender' -ErrorAction SilentlyContinue).Count -gt 0
 }
 
 function Restart-RiotClientOnce {
@@ -173,8 +175,8 @@ try {
         exit 0
     }
 
-    if (Test-LeagueRunning) {
-        Write-LauncherLog 'League client is already open; no locale monitoring is needed.'
+    if (Test-MatchRunning) {
+        Write-LauncherLog 'A League or TFT match is already running; locale monitoring is not needed.'
         exit 0
     }
 
@@ -190,23 +192,23 @@ try {
         Write-LauncherLog 'Attached to the existing Riot/League session.'
     }
 
-    if (Test-LeagueRunning) {
-        Write-LauncherLog 'League client opened; locale monitoring finished.'
+    if (Test-MatchRunning) {
+        Write-LauncherLog 'League or TFT match started; locale monitoring finished.'
         exit 0
     }
     Set-ActiveLeagueLocale | Out-Null
 
-    if ($alreadyRunning -and $initialLocale -eq 'en_US' -and -not (Test-LeagueRunning)) {
+    if ($alreadyRunning -and $initialLocale -eq 'en_US' -and -not (Test-LeagueClientRunning) -and -not (Test-MatchRunning)) {
         Restart-RiotClientOnce -RiotClient $riotClient
         $restartPerformed = $true
     }
 
-    Write-LauncherLog 'Watching active metadata locale until League client opens.'
+    Write-LauncherLog 'Watching active metadata locale until a League or TFT match starts.'
 
     $noProcessSince = $null
     while ($true) {
-        if (Test-LeagueRunning) {
-            Write-LauncherLog 'League client opened; locale monitoring finished.'
+        if (Test-MatchRunning) {
+            Write-LauncherLog 'League or TFT match started; locale monitoring finished.'
             break
         }
 
@@ -219,13 +221,13 @@ try {
             $metadataWriteUtc -gt $baselineMetadataWriteUtc
         )
 
-        if (Test-LeagueRunning) {
-            Write-LauncherLog 'League client opened; locale monitoring finished.'
+        if (Test-MatchRunning) {
+            Write-LauncherLog 'League or TFT match started; locale monitoring finished.'
             break
         }
         Set-ActiveLeagueLocale | Out-Null
 
-        if ($freshEnReset -and -not (Test-LeagueRunning)) {
+        if ($freshEnReset -and -not (Test-LeagueClientRunning) -and -not (Test-MatchRunning)) {
             Restart-RiotClientOnce -RiotClient $riotClient
             $restartPerformed = $true
         }
@@ -237,7 +239,7 @@ try {
             $noProcessSince = Get-Date
         }
         elseif ((Get-Date) -ge $noProcessSince.AddSeconds(10)) {
-            Write-LauncherLog 'Riot Client closed before League opened; locale monitoring finished.'
+            Write-LauncherLog 'Riot Client closed before a match started; locale monitoring finished.'
             break
         }
 
