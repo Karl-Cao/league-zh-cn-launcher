@@ -13,10 +13,10 @@ active metadata locale set to Simplified Chinese (`zh_CN`).
 ## What it does
 
 - Opens Riot Client normally without automatically starting League.
-- Watches `league_of_legends.live.product_settings.yaml` while Riot or League is
-  running and restores its active `locale` whenever Riot changes it to `en_US`.
+- Watches `league_of_legends.live.product_settings.yaml` while Riot is starting
+  and restores its active `locale` whenever Riot changes it to `en_US`.
 - When a fresh Riot session resets the locale to `en_US`, restores `zh_CN`,
-  restarts Riot Client once, and continues watching after it reopens. This makes
+  restarts Riot Client once, and continues watching until League opens. This makes
   the reopened client select the Chinese update path instead of continuing the
   full English language-package download.
 - Allows the user to manually click **Update** or **Play** after Riot reopens.
@@ -34,7 +34,7 @@ active metadata locale set to Simplified Chinese (`zh_CN`).
 
 ## Installation
 
-1. Download `League-zh_CN-Portable-v1.2.0.zip` from the latest
+1. Download `League-zh_CN-Portable-v1.2.1.zip` from the latest
    [GitHub Release](../../releases/latest).
 2. Extract the ZIP. Do not run the installer from inside the ZIP preview.
 3. Double-click **`Install League zh_CN.cmd`**.
@@ -69,9 +69,9 @@ again.
 The launcher opens Riot Client normally and monitors only the active `locale`
 field in League's product metadata. When it observes Riot's fresh `en_US` reset,
 it restores `zh_CN` and restarts Riot Client once. It then keeps restoring
-`zh_CN` throughout the reopened Riot and League session, including after League
-starts. It never restarts repeatedly, and it stops after both Riot and League
-have been closed for ten seconds.
+`zh_CN` until the League client opens, at which point the helper exits. If Riot
+closes before League opens, the helper exits after ten seconds. It never
+restarts Riot repeatedly.
 
 ## License
 

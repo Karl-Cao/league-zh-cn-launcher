@@ -15,7 +15,8 @@ $processNames = @(
     'RiotClientUxRender',
     'LeagueClient',
     'LeagueClientUx',
-    'LeagueClientUxRender'
+    'LeagueClientUxRender',
+    'League of Legends'
 )
 
 if (-not (Test-Path -LiteralPath $appDataRoot)) {
@@ -126,7 +127,7 @@ function Get-MetadataLastWriteUtc {
 function Test-LeagueRunning {
     return @(
         Get-Process -ErrorAction SilentlyContinue |
-            Where-Object { $_.ProcessName -in @('LeagueClient', 'LeagueClientUx', 'LeagueClientUxRender') }
+            Where-Object { $_.ProcessName -in @('LeagueClient', 'LeagueClientUx', 'LeagueClientUxRender', 'League of Legends') }
     ).Count -gt 0
 }
 
@@ -172,6 +173,11 @@ try {
         exit 0
     }
 
+    if (Test-LeagueRunning) {
+        Write-LauncherLog 'League client is already open; no locale monitoring is needed.'
+        exit 0
+    }
+
     $alreadyRunning = Test-RiotOrLeagueRunning
     $baselineMetadataWriteUtc = Get-MetadataLastWriteUtc
     $initialLocale = Get-ActiveLeagueLocale
@@ -184,6 +190,10 @@ try {
         Write-LauncherLog 'Attached to the existing Riot/League session.'
     }
 
+    if (Test-LeagueRunning) {
+        Write-LauncherLog 'League client opened; locale monitoring finished.'
+        exit 0
+    }
     Set-ActiveLeagueLocale | Out-Null
 
     if ($alreadyRunning -and $initialLocale -eq 'en_US' -and -not (Test-LeagueRunning)) {
@@ -191,10 +201,15 @@ try {
         $restartPerformed = $true
     }
 
-    Write-LauncherLog 'Active-locale watcher started; only metadata locale is managed.'
+    Write-LauncherLog 'Watching active metadata locale until League client opens.'
 
     $noProcessSince = $null
     while ($true) {
+        if (Test-LeagueRunning) {
+            Write-LauncherLog 'League client opened; locale monitoring finished.'
+            break
+        }
+
         $observedLocale = Get-ActiveLeagueLocale
         $metadataWriteUtc = Get-MetadataLastWriteUtc
         $freshEnReset = (
@@ -204,6 +219,10 @@ try {
             $metadataWriteUtc -gt $baselineMetadataWriteUtc
         )
 
+        if (Test-LeagueRunning) {
+            Write-LauncherLog 'League client opened; locale monitoring finished.'
+            break
+        }
         Set-ActiveLeagueLocale | Out-Null
 
         if ($freshEnReset -and -not (Test-LeagueRunning)) {
@@ -218,14 +237,13 @@ try {
             $noProcessSince = Get-Date
         }
         elseif ((Get-Date) -ge $noProcessSince.AddSeconds(10)) {
+            Write-LauncherLog 'Riot Client closed before League opened; locale monitoring finished.'
             break
         }
 
         Start-Sleep -Milliseconds 250
     }
 
-    Set-ActiveLeagueLocale | Out-Null
-    Write-LauncherLog 'Riot and League are closed; watcher finished.'
 }
 catch {
     Write-LauncherLog "ERROR: $($_.Exception.Message)"
