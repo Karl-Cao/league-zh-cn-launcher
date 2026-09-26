@@ -34,7 +34,7 @@ active metadata locale set to Simplified Chinese (`zh_CN`).
 
 ## Installation
 
-1. Download `League-zh_CN-Portable-v1.2.2.zip` from the latest
+1. Download `League-zh_CN-Portable-v1.2.3.zip` from the latest
    [GitHub Release](../../releases/latest).
 2. Extract the ZIP. Do not run the installer from inside the ZIP preview.
 3. Double-click **`Install League zh_CN.cmd`**.

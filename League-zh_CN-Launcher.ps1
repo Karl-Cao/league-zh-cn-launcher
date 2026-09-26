@@ -38,31 +38,48 @@ function Get-YamlValue {
 }
 
 function Find-RiotClient {
-    if (-not (Test-Path -LiteralPath $metadataPath -PathType Leaf)) {
-        throw "League live metadata was not found at $metadataPath"
-    }
-
-    $metadata = [System.IO.File]::ReadAllText($metadataPath)
-    $leagueRoot = Get-YamlValue -Text $metadata -Key 'product_install_full_path'
-    $productRoot = Get-YamlValue -Text $metadata -Key 'product_install_root'
-    if ([string]::IsNullOrWhiteSpace($leagueRoot)) {
-        throw 'Riot metadata does not contain product_install_full_path.'
-    }
-
-    $leagueRoot = $leagueRoot.Replace('/', '\').TrimEnd('\')
     $candidates = New-Object System.Collections.Generic.List[string]
-    if (-not [string]::IsNullOrWhiteSpace($productRoot)) {
-        $candidates.Add((Join-Path $productRoot.Replace('/', '\') 'Riot Client\RiotClientServices.exe'))
+    $installsPath = Join-Path $env:ProgramData 'Riot Games\RiotClientInstalls.json'
+    if (Test-Path -LiteralPath $installsPath -PathType Leaf) {
+        try {
+            $installs = [System.IO.File]::ReadAllText($installsPath) | ConvertFrom-Json
+            foreach ($path in @($installs.rc_live, $installs.patchlines.KeystoneFoundationLiveWin, $installs.rc_default)) {
+                if (-not [string]::IsNullOrWhiteSpace($path)) {
+                    $candidates.Add($path.Replace('/', '\'))
+                }
+            }
+        }
+        catch {
+            Write-LauncherLog 'Riot installation registry could not be read; trying metadata paths.'
+        }
     }
-    $candidates.Add((Join-Path (Split-Path -Parent $leagueRoot) 'Riot Client\RiotClientServices.exe'))
+
+    if (Test-Path -LiteralPath $metadataPath -PathType Leaf) {
+        try {
+            $metadata = [System.IO.File]::ReadAllText($metadataPath)
+            $leagueRoot = Get-YamlValue -Text $metadata -Key 'product_install_full_path'
+            $productRoot = Get-YamlValue -Text $metadata -Key 'product_install_root'
+            if (-not [string]::IsNullOrWhiteSpace($productRoot)) {
+                $candidates.Add((Join-Path $productRoot.Replace('/', '\') 'Riot Client\RiotClientServices.exe'))
+            }
+            if (-not [string]::IsNullOrWhiteSpace($leagueRoot)) {
+                $leagueRoot = $leagueRoot.Replace('/', '\').TrimEnd('\')
+                $candidates.Add((Join-Path (Split-Path -Parent $leagueRoot) 'Riot Client\RiotClientServices.exe'))
+            }
+        }
+        catch [System.IO.IOException] {
+            # Riot may replace metadata during discovery; the installation registry remains usable.
+        }
+    }
 
     $riotClient = $candidates |
         Select-Object -Unique |
         Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
         Select-Object -First 1
     if ([string]::IsNullOrWhiteSpace($riotClient)) {
-        throw 'RiotClientServices.exe could not be located automatically.'
+        throw 'RiotClientServices.exe could not be located from Riot installation records or metadata.'
     }
+    Write-LauncherLog "Located Riot Client: $riotClient"
     return $riotClient
 }
 
@@ -121,6 +138,9 @@ function Get-MetadataLastWriteUtc {
         return (Get-Item -LiteralPath $metadataPath).LastWriteTimeUtc
     }
     catch [System.IO.IOException] {
+        return [datetime]::MinValue
+    }
+    catch [System.Management.Automation.ItemNotFoundException] {
         return [datetime]::MinValue
     }
 }

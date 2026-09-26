@@ -26,7 +26,19 @@ try {
     $metadata = [System.IO.File]::ReadAllText($metadataPath)
     $leagueRoot = Get-YamlValue -Text $metadata -Key 'product_install_full_path'
     if ([string]::IsNullOrWhiteSpace($leagueRoot)) {
-        throw 'Could not determine the League installation folder from Riot metadata.'
+        $installsPath = Join-Path $env:ProgramData 'Riot Games\RiotClientInstalls.json'
+        if (Test-Path -LiteralPath $installsPath -PathType Leaf) {
+            $installs = [System.IO.File]::ReadAllText($installsPath) | ConvertFrom-Json
+            $leagueRoot = $installs.associated_client.PSObject.Properties |
+                Where-Object {
+                    $_.Name.Replace('/', '\').TrimEnd('\') -match '\\League of Legends$' -and
+                    (Test-Path -LiteralPath (Join-Path $_.Name.Replace('/', '\') 'LeagueClient.exe') -PathType Leaf)
+                } |
+                Select-Object -First 1 -ExpandProperty Name
+        }
+        if ([string]::IsNullOrWhiteSpace($leagueRoot)) {
+            throw 'Could not determine the League installation folder from Riot installation records or metadata.'
+        }
     }
     $leagueClient = Join-Path $leagueRoot.Replace('/', '\').TrimEnd('\') 'LeagueClient.exe'
     if (-not (Test-Path -LiteralPath $leagueClient -PathType Leaf)) {
