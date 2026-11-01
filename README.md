@@ -13,10 +13,10 @@ active metadata locale set to Simplified Chinese (`zh_CN`).
 ## What it does
 
 - Opens Riot Client normally without automatically starting League.
-- Watches `league_of_legends.live.product_settings.yaml` while Riot is starting
+- Watches `league_of_legends.live.product_settings.yaml` while Riot or the League client is open
   and restores its active `locale` whenever Riot changes it to `en_US`.
 - When a fresh Riot session resets the locale to `en_US`, restores `zh_CN`,
-  restarts Riot Client once, and continues watching until a match opens. This makes
+  restarts Riot Client once, and continues watching across matches. This makes
   the reopened client select the Chinese update path instead of continuing the
   full English language-package download.
 - Allows the user to manually click **Update** or **Play** after Riot reopens.
@@ -34,7 +34,7 @@ active metadata locale set to Simplified Chinese (`zh_CN`).
 
 ## Installation
 
-1. Download `League-zh_CN-Portable-v1.2.3.zip` from the latest
+1. Download `League-zh_CN-Portable-v1.2.4.zip` from the latest
    [GitHub Release](../../releases/latest).
 2. Extract the ZIP. Do not run the installer from inside the ZIP preview.
 3. Double-click **`Install League zh_CN.cmd`**.
@@ -70,9 +70,10 @@ The launcher opens Riot Client normally and monitors only the active `locale`
 field in League's product metadata. When it observes Riot's fresh `en_US` reset,
 it restores `zh_CN` and restarts Riot Client once. It then keeps restoring
 `zh_CN` in the League client lobby. When a League of Legends or Teamfight
-Tactics match executable starts, the helper exits, so it does not run during
-the match or post-game. If Riot closes before a match starts, the helper exits
-after ten seconds. It never restarts Riot repeatedly.
+Tactics match executable starts, the helper pauses all metadata access. It
+resumes after the match, so later account changes and updates are still
+monitored. The helper exits ten seconds after Riot and League are both closed.
+It never restarts Riot repeatedly within one launcher run.
 
 ## License
 
