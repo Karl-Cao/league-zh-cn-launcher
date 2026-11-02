@@ -21,6 +21,7 @@
 - 不修改 Riot Client 设置、`default_locale`、`available_locales` 或
   `LeagueClientSettings.yaml`。
 - 创建桌面快捷方式，并使用本机英雄联盟客户端的图标。
+- 从桌面快捷方式启动时不会显示黑色控制台窗口。
 - 不会把 Riot 配置文件设为只读，因此不会故意阻止正常更新或修复。
 
 ## 系统要求
@@ -32,7 +33,7 @@
 ## 安装方法
 
 1. 从最新的 [GitHub Release](../../releases/latest) 下载
-   `League-zh_CN-Portable-v1.2.4.zip`。
+   `League-zh_CN-Portable-v1.2.5.zip`。
 2. 完整解压 ZIP；不要直接在压缩包预览窗口中运行安装程序。
 3. 双击 **`Install League zh_CN.cmd`**。
 4. 以后使用桌面上的 **League of Legends - Simplified Chinese** 启动游戏。

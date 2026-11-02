@@ -23,6 +23,7 @@ active metadata locale set to Simplified Chinese (`zh_CN`).
 - Does not modify Riot Client settings, `default_locale`, `available_locales`, or
   `LeagueClientSettings.yaml`.
 - Creates a desktop shortcut using the installed League client icon.
+- Starts the watcher without a console window from the desktop shortcut.
 - Leaves Riot configuration files writable so normal patching and repair are
   not intentionally blocked.
 
@@ -34,7 +35,7 @@ active metadata locale set to Simplified Chinese (`zh_CN`).
 
 ## Installation
 
-1. Download `League-zh_CN-Portable-v1.2.4.zip` from the latest
+1. Download `League-zh_CN-Portable-v1.2.5.zip` from the latest
    [GitHub Release](../../releases/latest).
 2. Extract the ZIP. Do not run the installer from inside the ZIP preview.
 3. Double-click **`Install League zh_CN.cmd`**.

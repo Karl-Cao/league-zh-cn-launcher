@@ -9,7 +9,7 @@ $installRoot = Join-Path $env:LOCALAPPDATA 'League-zh_CN-Launcher'
 $desktopPath = [Environment]::GetFolderPath('Desktop')
 $shortcutPath = Join-Path $desktopPath 'League of Legends - Simplified Chinese.lnk'
 $sourceRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$powershellExe = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
+$scriptHost = "$env:SystemRoot\System32\wscript.exe"
 
 function Get-YamlValue {
     param([string]$Text, [string]$Key)
@@ -44,24 +44,28 @@ try {
     if (-not (Test-Path -LiteralPath $leagueClient -PathType Leaf)) {
         throw "LeagueClient.exe was not found at $leagueClient"
     }
+    if (-not (Test-Path -LiteralPath $scriptHost -PathType Leaf)) {
+        throw 'Windows Script Host was not found on this computer.'
+    }
 
     New-Item -ItemType Directory -Path $installRoot -Force | Out-Null
     Copy-Item -LiteralPath (Join-Path $sourceRoot 'League-zh_CN-Launcher.ps1') -Destination $installRoot -Force
+    Copy-Item -LiteralPath (Join-Path $sourceRoot 'Launch-League-zh_CN.vbs') -Destination $installRoot -Force
     Copy-Item -LiteralPath (Join-Path $sourceRoot 'Uninstall-League-zh_CN.ps1') -Destination $installRoot -Force
     Copy-Item -LiteralPath (Join-Path $sourceRoot 'Uninstall League zh_CN.cmd') -Destination $installRoot -Force
 
-    $installedLauncher = Join-Path $installRoot 'League-zh_CN-Launcher.ps1'
+    $installedLauncher = Join-Path $installRoot 'Launch-League-zh_CN.vbs'
+    $validation = Start-Process -FilePath $scriptHost -ArgumentList @('//B', '//Nologo', "`"$installedLauncher`"", '/validate') -Wait -PassThru
+    if ($validation.ExitCode -ne 0) { throw 'Hidden launcher validation failed.' }
+
     $wsh = New-Object -ComObject WScript.Shell
     $shortcut = $wsh.CreateShortcut($shortcutPath)
-    $shortcut.TargetPath = $powershellExe
-    $shortcut.Arguments = "-NoLogo -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$installedLauncher`""
+    $shortcut.TargetPath = $scriptHost
+    $shortcut.Arguments = "`"$installedLauncher`""
     $shortcut.WorkingDirectory = $installRoot
     $shortcut.IconLocation = "$leagueClient,0"
     $shortcut.Description = 'Launch League of Legends in Simplified Chinese (zh_CN)'
     $shortcut.Save()
-
-    & $powershellExe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $installedLauncher -NoLaunch
-    if ($LASTEXITCODE -ne 0) { throw 'Launcher validation failed.' }
 
     if (-not $Quiet) {
         Add-Type -AssemblyName PresentationFramework
