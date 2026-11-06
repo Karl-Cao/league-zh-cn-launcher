@@ -6,6 +6,10 @@ param(
 $ErrorActionPreference = 'Stop'
 $targetLocale = 'zh_CN'
 $metadataPath = 'C:\ProgramData\Riot Games\Metadata\league_of_legends.live\league_of_legends.live.product_settings.yaml'
+$metadataProducts = @(
+    @{ Name = 'League'; Path = $metadataPath },
+    @{ Name = 'TFT'; Path = 'C:\ProgramData\Riot Games\Metadata\teamfighttactics.live\teamfighttactics.live.product_settings.yaml' }
+)
 $appDataRoot = Join-Path $env:LOCALAPPDATA 'League-zh_CN-Launcher'
 $logPath = Join-Path $appDataRoot 'launcher.log'
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
@@ -83,13 +87,15 @@ function Find-RiotClient {
     return $riotClient
 }
 
-function Set-ActiveLeagueLocale {
-    if (-not (Test-Path -LiteralPath $metadataPath -PathType Leaf)) {
+function Set-ActiveLocale {
+    param([string]$Path, [string]$Product)
+
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
         return $false
     }
 
     try {
-        $original = [System.IO.File]::ReadAllText($metadataPath)
+        $original = [System.IO.File]::ReadAllText($Path)
         $locale = Get-YamlValue -Text $original -Key 'locale'
         if ($locale -eq $targetLocale) {
             return $false
@@ -104,8 +110,8 @@ function Set-ActiveLeagueLocale {
             return $false
         }
 
-        [System.IO.File]::WriteAllText($metadataPath, $updated, $utf8NoBom)
-        Write-LauncherLog "Restored active metadata locale to $targetLocale."
+        [System.IO.File]::WriteAllText($Path, $updated, $utf8NoBom)
+        Write-LauncherLog "Restored $Product active metadata locale to $targetLocale."
         return $true
     }
     catch [System.IO.IOException] {
@@ -114,13 +120,21 @@ function Set-ActiveLeagueLocale {
     }
 }
 
-function Get-ActiveLeagueLocale {
-    if (-not (Test-Path -LiteralPath $metadataPath -PathType Leaf)) {
+function Set-ActiveLocales {
+    foreach ($product in $metadataProducts) {
+        Set-ActiveLocale -Path $product.Path -Product $product.Name | Out-Null
+    }
+}
+
+function Get-ActiveLocale {
+    param([string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
         return $null
     }
 
     try {
-        $metadata = [System.IO.File]::ReadAllText($metadataPath)
+        $metadata = [System.IO.File]::ReadAllText($Path)
         return Get-YamlValue -Text $metadata -Key 'locale'
     }
     catch [System.IO.IOException] {
@@ -130,12 +144,14 @@ function Get-ActiveLeagueLocale {
 }
 
 function Get-MetadataLastWriteUtc {
-    if (-not (Test-Path -LiteralPath $metadataPath -PathType Leaf)) {
+    param([string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
         return [datetime]::MinValue
     }
 
     try {
-        return (Get-Item -LiteralPath $metadataPath).LastWriteTimeUtc
+        return (Get-Item -LiteralPath $Path).LastWriteTimeUtc
     }
     catch [System.IO.IOException] {
         return [datetime]::MinValue
@@ -156,7 +172,7 @@ function Test-LeagueClientRunning {
 function Restart-RiotClientOnce {
     param([string]$RiotClient)
 
-    Write-LauncherLog 'EN update state detected; restarting Riot Client once after restoring zh_CN.'
+    Write-LauncherLog 'EN metadata reset detected; restarting Riot Client once after restoring zh_CN.'
     @('RiotClientUxRender', 'RiotClientUx', 'RiotClientServices') | ForEach-Object {
         Get-Process -Name $_ -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     }
@@ -196,8 +212,12 @@ try {
     }
 
     $alreadyRunning = Test-RiotOrLeagueRunning
-    $baselineMetadataWriteUtc = Get-MetadataLastWriteUtc
-    $initialLocale = Get-ActiveLeagueLocale
+    $baselineMetadataWriteUtc = @{}
+    $initialLocales = @{}
+    foreach ($product in $metadataProducts) {
+        $baselineMetadataWriteUtc[$product.Name] = Get-MetadataLastWriteUtc -Path $product.Path
+        $initialLocales[$product.Name] = Get-ActiveLocale -Path $product.Path
+    }
     $restartPerformed = $false
     if (-not $alreadyRunning) {
         Start-Process -FilePath $riotClient
@@ -208,15 +228,16 @@ try {
     }
 
     if (-not (Test-MatchRunning)) {
-        Set-ActiveLeagueLocale | Out-Null
+        Set-ActiveLocales
     }
 
-    if ($alreadyRunning -and $initialLocale -eq 'en_US' -and -not (Test-LeagueClientRunning) -and -not (Test-MatchRunning)) {
+    $initialEnLocale = @($metadataProducts | Where-Object { $initialLocales[$_.Name] -eq 'en_US' }).Count -gt 0
+    if ($alreadyRunning -and $initialEnLocale -and -not (Test-LeagueClientRunning) -and -not (Test-MatchRunning)) {
         Restart-RiotClientOnce -RiotClient $riotClient
         $restartPerformed = $true
     }
 
-    Write-LauncherLog 'Watching active metadata locale while Riot or League is open; pausing during matches.'
+    Write-LauncherLog 'Watching League and TFT active metadata locales while Riot or League is open; pausing during matches.'
 
     $noProcessSince = $null
     $matchWasRunning = $false
@@ -235,19 +256,21 @@ try {
             $matchWasRunning = $false
         }
 
-        $observedLocale = Get-ActiveLeagueLocale
-        $metadataWriteUtc = Get-MetadataLastWriteUtc
-        $freshEnReset = (
-            -not $alreadyRunning -and
-            -not $restartPerformed -and
-            $observedLocale -eq 'en_US' -and
-            $metadataWriteUtc -gt $baselineMetadataWriteUtc
-        )
+        $freshEnReset = $false
+        foreach ($product in $metadataProducts) {
+            $observedLocale = Get-ActiveLocale -Path $product.Path
+            $metadataWriteUtc = Get-MetadataLastWriteUtc -Path $product.Path
+            if (-not $alreadyRunning -and -not $restartPerformed -and
+                $observedLocale -eq 'en_US' -and
+                $metadataWriteUtc -gt $baselineMetadataWriteUtc[$product.Name]) {
+                $freshEnReset = $true
+            }
+        }
 
         if (Test-MatchRunning) {
             continue
         }
-        Set-ActiveLeagueLocale | Out-Null
+        Set-ActiveLocales
 
         if ($freshEnReset -and -not (Test-LeagueClientRunning) -and -not (Test-MatchRunning)) {
             Restart-RiotClientOnce -RiotClient $riotClient

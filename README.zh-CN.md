@@ -2,8 +2,8 @@
 
 [English](README.md) | **简体中文**
 
-这是一个适用于 Windows 的小工具。它会打开 Riot Client，并持续保持英雄联盟
-元数据中的当前语言为简体中文（`zh_CN`）。
+这是一个适用于 Windows 的小工具。它会打开 Riot Client，并保持英雄联盟及
+云顶之弈产品元数据中的当前语言为简体中文（`zh_CN`）。
 
 > [!IMPORTANT]
 > 这是由社区制作的非官方解决方案，与 Riot Games 无隶属、认可或支持关系。
@@ -12,13 +12,14 @@
 ## 功能
 
 - 正常打开 Riot Client，不自动启动英雄联盟。
-- 在 Riot 启动期间监控 `league_of_legends.live.product_settings.yaml`；
-  Riot 将当前 `locale` 改回 `en_US` 时，立即恢复为 `zh_CN`。
+- 在 Riot 或英雄联盟大厅运行期间分别监控英雄联盟与云顶之弈的产品元数据；
+  Riot 将任一产品的当前 `locale` 改回 `en_US` 时，恢复为 `zh_CN`。
+  如果没有安装云顶之弈，启动器会跳过其元数据。
 - 当新的 Riot 会话把语言重置为 `en_US` 时，启动器会先恢复 `zh_CN`，再自动重启
   Riot Client 一次，并在重启后继续监控，跨越多局游戏。这样重新打开的客户端会选择中文更新，
   而不是继续下载完整的英文语言包。
 - Riot Client 重新打开后，用户可以手动点击 **更新** 或 **开始游戏**。
-- 不修改 Riot Client 设置、`default_locale`、`available_locales` 或
+- 不修改 Riot Client 设置、两个产品的 `default_locale`、`available_locales` 或
   `LeagueClientSettings.yaml`。
 - 创建桌面快捷方式，并使用本机英雄联盟客户端的图标。
 - 从桌面快捷方式启动时不会显示黑色控制台窗口。
@@ -33,7 +34,7 @@
 ## 安装方法
 
 1. 从最新的 [GitHub Release](../../releases/latest) 下载
-   `League-zh_CN-Portable-v1.2.5.zip`。
+   `League-zh_CN-Portable-v1.2.6.zip`。
 2. 完整解压 ZIP；不要直接在压缩包预览窗口中运行安装程序。
 3. 双击 **`Install League zh_CN.cmd`**。
 4. 以后使用桌面上的 **League of Legends - Simplified Chinese** 启动游戏。
@@ -62,8 +63,8 @@
 
 ## 工作原理
 
-启动器正常打开 Riot Client，并且只监控英雄联盟产品元数据中的当前 `locale`
-字段。当它发现 Riot 刚把语言重置为 `en_US` 时，会恢复 `zh_CN` 并自动重启
+启动器正常打开 Riot Client，并且只监控英雄联盟及已安装云顶之弈产品元数据中的
+当前 `locale` 字段。当它发现 Riot 刚把语言重置为 `en_US` 时，会恢复 `zh_CN` 并自动重启
 Riot Client 一次。重启后，它会在英雄联盟大厅继续保持 `zh_CN`。检测到
 英雄联盟或云顶之弈的实际游戏进程时，监控程序暂停访问元数据；对局结束后
 恢复监控，因此之后切换账号或遇到更新时仍会维护中文。Riot 和英雄联盟都关闭
